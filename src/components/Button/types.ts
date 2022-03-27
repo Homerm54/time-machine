@@ -6,7 +6,7 @@ type ButtonStyleTypes = 'primary' | 'secondary' | 'info' | 'danger' | 'success' 
 /** Types of button style variants, changes teh appearance of the button */
 type ButtonStyleVariants = 'filled' | 'outlined' | 'text';
 /** Type of button size */
-type ButtonSize = 'medium';
+type ButtonSize = 'small' | 'medium' | 'large';
 /** Diferent shapes that the button can have */
 type ButtonShape = 'round' | 'box';
 
@@ -37,6 +37,11 @@ interface ButtonProps extends NativeButtonProps {
   // ---------- STATES
   /** Whether or not the button is disabled, if true will block the onClick call */
   disabled?: boolean;
+  /** 
+   * Whether or not to display a loading icon alongside the button content, 
+   * if true will block the onClick call.
+   */
+  loading?: boolean;
   // ---------- ATTRIBUTES
   /** HTML type of the button */
   htmlType?: 'button' | 'reset' | 'submit';
@@ -50,6 +55,7 @@ interface ButtonProps extends NativeButtonProps {
 /** Props passed to the styled component object, see the ButtonProps for details on the fields */
 interface ButtonStyleProps extends NativeButtonProps {
   readonly disabled: boolean;
+  readonly $loading: boolean;
   readonly $type: ButtonStyleTypes;
   readonly $variant: ButtonStyleVariants;
   readonly $size: ButtonSize;

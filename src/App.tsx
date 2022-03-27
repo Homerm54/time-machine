@@ -5,7 +5,7 @@ import { Timer } from './modules/Timer';
 
 function App() {
   return (
-    <div className='m-4'>
+    <div style={{ marginTop: "2rem" }}>
       <Tab.Group alignment='center' initialActiveTab='Timer'>
         <Tab.Item tabKey='Timer' label='Timer'>
           <Timer />

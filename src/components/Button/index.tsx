@@ -5,6 +5,7 @@ import { ButtonProps, IconComplex } from "./types";
 const Button = ({
   icon,
   children,
+  loading = false,
   disabled = false,
   size = 'medium',
   type = 'primary',
@@ -23,7 +24,7 @@ const Button = ({
       startElement = icon;
     } else {
       const typedIcon = icon as IconComplex;
-      if (typedIcon.iconStart) startElement = typedIcon.iconStart;
+      if (typedIcon.iconStart && !loading) startElement = typedIcon.iconStart;
       if (typedIcon.iconEnd) endElement = typedIcon.iconEnd;
     }
   }
@@ -36,6 +37,7 @@ const Button = ({
       $size={size}
       $type={type}
       $variant={variant}
+      $loading={loading}
       disabled={disabled}
       $fullWidth={block}
       {...rest}

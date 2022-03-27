@@ -6,6 +6,8 @@ export type Theme = DefaultTheme;
 const baseSpacing = 8;
 
 const base = {
+  baseFontSize: 16,
+  
   transitions: {
     easing: {
       easeInOut: "cubic-bezier(0.4, 0, 0.2, 1)",

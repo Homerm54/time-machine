@@ -3,6 +3,12 @@ import { ColorScale } from './types';
 
 declare module 'styled-components' {
   export interface DefaultTheme {
+    /** 
+     * Base font size for the application, in pixels, 
+     * helpfull to derived font sizes relative to the base size.
+     */
+    baseFontSize: number;
+    
     palette: {
       /**
        * Primary palette color, this object represents the diferent variations of the primary

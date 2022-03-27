@@ -201,14 +201,22 @@ const disabledStyles: VariantStyleObject = {
 };
 
 const sizeStyles: SizeStyleObject = {
+  large: css`
+		font-size: ${({ theme }) => (theme.baseFontSize) + 2}px;
+		padding: ${({ theme }) => theme.spacing(0.75)}px ${({ theme }) => theme.spacing(1)}px;
+	`,
   medium: css`
 		padding: ${({ theme }) => theme.spacing(0.5)}px ${({ theme }) => theme.spacing(0.75)}px;
 	`,
+  small: css`
+		font-size: ${({ theme }) => (theme.baseFontSize) - 2}px;
+		padding: ${({ theme }) => theme.spacing(0.25)}px ${({ theme }) => theme.spacing(0.25)}px;
+	`,
 };
 
-const generateStyle = ({ $variant, $type, disabled }: ButtonStyleProps) => {
+const generateStyle = ({ $variant, $type, $loading, disabled }: ButtonStyleProps) => {
   // The disabled style takes precedence over the color mode style, only variant remains
-  if (disabled) return disabledStyles[$variant];
+  if ($loading || disabled) return disabledStyles[$variant];
   return types[$type][$variant];
 };
 
