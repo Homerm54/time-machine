@@ -1,12 +1,11 @@
+import { useMachine } from "@xstate/react";
 import { Button } from "../../components";
+import { timerMachine } from "./machine";
 import { ButtonGroup, Contianer, Timer } from "./style";
 
-function send(event: string) {
-  console.log(`Event fired: ${event}`);
-}
 
 function TimerComponent(): JSX.Element {
-  const state = { context: { time: { hours: '00', minutes: '00', seconds: '00' } } }
+  const [state, send] = useMachine(timerMachine);
   
   return (
     <Contianer>
@@ -15,17 +14,25 @@ function TimerComponent(): JSX.Element {
       </Timer>
 
       <ButtonGroup>
-        <Button size="large" variant="outlined" onClick={() => send('start')}>
-          Start
-        </Button>
+        {
+          (state.value === 'IDLE' || state.value === 'PAUSED')
+          && <Button size="large" variant="outlined" onClick={() => send('START')}>Start</Button>
+        }
 
-        <Button size="large" variant="outlined" onClick={() => send('stop')}>
-          Stop
-        </Button>
+        {
+          state.value === 'RUNNING'
+          && <Button size="large" variant="outlined" onClick={() => send('STOP')}>Pause</Button>
+        }
 
-        <Button size="large" variant="outlined" onClick={() => send('reset')}>
-          Reset
-        </Button>
+        {
+          state.value === 'RUNNING'
+          && <Button size="large" variant="outlined" onClick={() => send('RESET')}>Reset</Button>
+        }
+
+        {
+          state.value === 'PAUSED'
+          && <Button size="large" variant="outlined" onClick={() => send('RESET')}>Cancel</Button>
+        }
       </ButtonGroup>
     </Contianer>
   );
