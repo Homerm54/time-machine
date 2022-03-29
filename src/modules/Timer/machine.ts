@@ -10,6 +10,7 @@ type TimerMachineContext = {
     /** Seconds elapsed since started */
     seconds: string;
   },
+  // time that will be incremented for every "tick" event
   step: number,
 }
 
@@ -39,7 +40,7 @@ const timerMachineOptions: MachineConfig<TimerMachineContext, TimerMachineSchema
   initial: 'IDLE',
   states: {
     IDLE: {
-      entry: 'reset',
+      entry: 'reset', // Reset the timer evey time the machine enters in the indle state
       on: {
         START: { target: 'RUNNING' },
       }
@@ -51,10 +52,14 @@ const timerMachineOptions: MachineConfig<TimerMachineContext, TimerMachineSchema
       }
     },
     RUNNING: {
+      // This is the true clock service that will be started as soon as the machine enters
+      // in this state, and will be stopped as soon as the machine existe the state
+      // that's why is invoked, is tied to the current state
       invoke: {
         id: 'clock',
         src: 'ticker',
       },
+      // State Transitions
       on: {
         STOP: { target: 'PAUSED' },
         TICK: { actions: 'increment' },
@@ -66,19 +71,19 @@ const timerMachineOptions: MachineConfig<TimerMachineContext, TimerMachineSchema
 
 const timerMachine = createMachine(timerMachineOptions, {
   actions: {
+    // Mapping of actions, the increment action will upadate the time prop in the context object
     increment: assign({
       time: (cxt) => {
         let hours = parseInt(cxt.time.hours, 10);
         let minutes = parseInt(cxt.time.minutes, 10);
         let seconds = parseInt(cxt.time.seconds, 10);
 
-        if (seconds < 59) {
-          seconds += cxt.step;
-        } else {
+        if (seconds < 59) seconds += cxt.step;
+        else {
           seconds = 0;
-          if (minutes < 59) {
-            minutes += cxt.step;
-          } else {
+
+          if (minutes < 59) minutes += cxt.step;
+          else {
             minutes = 0;
             hours += cxt.step;
           }
@@ -97,13 +102,10 @@ const timerMachine = createMachine(timerMachineOptions, {
     })
   },
   services: {
-    // Function that returns a **callback**, sends events back to parent
+    //Service invoked with **callback** mode, sends events back to parent
     ticker: () => (cb) => {
-      const clockid = setInterval(() => {
-        cb('TICK');
-      }, 1000);
-
-      return () => clearInterval(clockid);
+      const clockid = setInterval(() => cb('TICK'), 1000);
+      return () => clearInterval(clockid); // Stop ticking on state exit
     }
   }
 })
