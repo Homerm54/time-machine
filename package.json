@@ -2,6 +2,7 @@
   "name": "time-machine",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://homerm54.github.io",
   "dependencies": {
     "@types/node": "^16.11.26",
     "@types/react": "^17.0.43",
@@ -17,7 +18,9 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
@@ -38,6 +41,7 @@
     ]
   },
   "devDependencies": {
-    "@types/styled-components": "^5.1.24"
+    "@types/styled-components": "^5.1.24",
+    "gh-pages": "^3.2.3"
   }
 }
