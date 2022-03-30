@@ -1,23 +1,43 @@
-import { assign, createMachine, MachineConfig } from "xstate";
+import { assign, createMachine, MachineConfig, Interpreter } from "xstate";
 
+/**
+ * Features:
+ *  - hours - minutes - seconds input
+ *  - Allows to stop / continue the timer
+ *  
+ *  - Support for overtime state, keeps counting in negative after 0 is reached
+ *  - Allows to restart timer with the very same input as before
+ * 
+ * TODO: Allow multiple clocks running at the same time
+ */
+
+// [SECTION] INTERFACES
 type TimerMachineContext = {
   /** Object representing the time that will be displayed on the UI */
   time: {
     /** Hours elapsed since started */
-    hours: string;
+    hours: number;
     /** Minutes elapsed since started */
-    minutes: string;
+    minutes: number;
     /** Seconds elapsed since started */
-    seconds: string;
-  },
-  // time that will be incremented for every "tick" event
-  step: number,
+    seconds: number;
+  };
+  /** Time that will be incremented for every "tick" event */
+  step: number;
+  /** Hold of the input time in case that a restart is requested */
+  inputTime: {
+    hours: number;
+    minutes: number;
+    seconds: number;
+  };
 }
 
-type TimerMachineTransitions =
-  | { type: 'START' }
+type TimerMachineEvents =
+  | { type: 'START', time: TimerMachineContext['time'], }
+  | { type: 'RESUME' }
   | { type: 'STOP' }
-  | { type: 'RESET' }
+  | { type: 'PAUSE' }
+  | { type: 'RESTART' }
   | { type: 'TICK' }
 
 interface TimerMachineSchema {
@@ -25,82 +45,147 @@ interface TimerMachineSchema {
     /** Idle state, when the timer tick is not running - time in 00:00:00 */
     IDLE: {},
     /** timer is running, and a tick is fired at a set interval */
-    RUNNING: {},
-    /** Timer tick is puased, but the time state is preserved */
+    RUNNING: {
+      states: {
+        /** The stopwatch is counting down and hasn't reached 0 yet */
+        NORMAL: {},
+        /** The stopwatch is still counting, bu has already reached 0 */
+        OVERTIME: {},
+      }
+    },
+    /** Timer tick is paused, but the time state is preserved */
     PAUSED: {},
+    /** An invalid time stamp has been submitted */
+    INVALID: {},
   },
 }
 
-const timerMachineOptions: MachineConfig<TimerMachineContext, TimerMachineSchema, TimerMachineTransitions> = {
-  id: 'Timer-Machine',
-  context: {
-    time: { hours: '00', minutes: '00', seconds: '00' },
-    step: 1,
-  },
+type TimerService = Interpreter<TimerMachineContext, TimerMachineSchema, TimerMachineEvents>;
+
+const timerMachineOptions: MachineConfig<TimerMachineContext, TimerMachineSchema, TimerMachineEvents> = {
+  id: 'stopwatch',
   initial: 'IDLE',
+  context: {
+    time: { hours: 0, minutes: 0, seconds: 0 },
+    step: 1,
+    inputTime: { hours: 0, minutes: 0, seconds: 0 },
+  },
   states: {
     IDLE: {
-      entry: 'reset', // Reset the timer evey time the machine enters in the indle state
+      entry: 'resetTimer',
       on: {
-        START: { target: 'RUNNING' },
-      }
-    },
-    PAUSED: {
-      on: {
-        START: { target: 'RUNNING' },
-        RESET: { target: 'IDLE' },
+        START: [
+          { target: 'RUNNING', cond: 'validTimestamp', actions: 'assignTime' },
+          { target: 'INVALID' },
+        ]
       }
     },
     RUNNING: {
-      // This is the true clock service that will be started as soon as the machine enters
-      // in this state, and will be stopped as soon as the machine existe the state
-      // that's why is invoked, is tied to the current state
+      type: 'compound',
+      initial: 'NORMAL',
       invoke: {
-        id: 'clock',
+        id: 'ticker',
         src: 'ticker',
       },
-      // State Transitions
+      states: {
+        NORMAL: {
+          on: {
+            TICK: [
+              {
+                cond: 'checkOvertime', // Check if overtime on each tick
+                target: 'OVERTIME',
+                actions: 'increment', // Keep ticking even on transition
+              },
+              { actions: 'decrement' },
+            ], 
+            PAUSE: { target: '#stopwatch.PAUSED' },
+            STOP: { target: '#stopwatch.IDLE' },
+          }
+        },
+        OVERTIME: {
+          on: {
+            TICK: { actions: 'increment' },
+            STOP: { target: '#stopwatch.IDLE' },
+            RESTART: { target: '#stopwatch.RUNNING', actions: 'restartTimer' },
+          }
+        },
+      },
+    },
+    PAUSED: {
       on: {
-        STOP: { target: 'PAUSED' },
-        TICK: { actions: 'increment' },
-        RESET: { actions: 'reset' }
+        RESUME: { target: 'RUNNING' },
+        RESTART: { target: 'RUNNING', actions: 'restartTimer' },
+        STOP: { target: 'IDLE' },
       }
     },
-  }
+    INVALID: {
+      entry: 'alertInvalidState',
+      always: { target: 'IDLE' }
+    },
+  },
 };
 
 const timerMachine = createMachine(timerMachineOptions, {
   actions: {
-    // Mapping of actions, the increment action will upadate the time prop in the context object
-    increment: assign({
-      time: (cxt) => {
-        let hours = parseInt(cxt.time.hours, 10);
-        let minutes = parseInt(cxt.time.minutes, 10);
-        let seconds = parseInt(cxt.time.seconds, 10);
-
-        if (seconds < 59) seconds += cxt.step;
-        else {
-          seconds = 0;
-
-          if (minutes < 59) minutes += cxt.step;
-          else {
-            minutes = 0;
-            hours += cxt.step;
-          }
+    alertInvalidState: () => alert('The time is invalid, make sure that minutes and seconds are 60 or less'),
+    assignTime: assign({
+      time: (context, event) => {
+        if (event.type === 'START') {
+          return {
+            hours: event.time.hours,
+            minutes: event.time.minutes,
+            seconds: event.time.seconds,
+          } 
         }
-
-        return {
-          hours: hours >= 10 ? `${hours}` : `0${hours}`,
-          minutes: minutes >= 10 ? `${minutes}` : `0${minutes}`,
-          seconds: seconds >= 10 ? `${seconds}` : `0${seconds}`,
+        return context.time;
+      },
+      inputTime: (context, event) => {
+        if (event.type === 'START') {
+          return {
+            hours: event.time.hours,
+            minutes: event.time.minutes,
+            seconds: event.time.seconds,
+          } 
         }
+        return context.inputTime;
       }
     }),
 
-    reset: assign({
-      time: () => ({ hours: '00', minutes: '00', seconds: '00' }),
-    })
+    restartTimer: assign({
+      time: (context) => context.inputTime,
+    }),
+
+    resetTimer: assign({
+      time: () => ({ hours: 0, minutes: 0, seconds: 0 }),
+    }),
+
+    decrement: assign({
+      time: (context) => processTick(context.time, context.step, false),
+    }),
+
+    increment: assign({
+      time: (context) => processTick(context.time, context.step, true),
+    }),
   },
+  guards: {
+    validTimestamp(ctx: any, event: any) {
+      if (!event.time) return false;
+
+      const { hours, minutes, seconds } = event.time;
+      const limits = hours >= 0 && minutes <= 60 && seconds <= 60;
+      const atLeastOneSecondTimer = hours > 0 || minutes > 0 || seconds > 0;
+      
+      if (limits && atLeastOneSecondTimer) return true;
+      return false;
+    },
+
+    checkOvertime(context) {
+      const { hours, minutes, seconds } = context.time;
+      if (hours === 0 && minutes === 0 && seconds === 0) return true;
+      return false;
+    }
+  },
+
   services: {
     //Service invoked with **callback** mode, sends events back to parent
     ticker: () => (cb) => {
@@ -108,6 +193,38 @@ const timerMachine = createMachine(timerMachineOptions, {
       return () => clearInterval(clockid); // Stop ticking on state exit
     }
   }
-})
+});
 
 export { timerMachine };
+export type { TimerService };
+
+
+// [SECTION] Helpers
+/**
+ * Function to extract the logic of processing a tick event, mutating the time object
+ * @param time The current time in machine context, for the given event in the tick.
+ * @param interval The step, or interval, that will update the time object.
+ * @param countingUp Flag to process the tick, whether on overtime, or in normal process.
+ * @returns The new processed time for the tick event.
+ */
+function processTick(time: TimerMachineContext['time'], interval: number, countingUp?: boolean) {
+  let { hours, minutes, seconds } = time;
+
+  if (countingUp ? seconds <= 59 : seconds >= 0) {
+    if (countingUp) seconds += interval;
+    else seconds -= interval;
+  } else {
+    seconds = countingUp ? 0 : 59;
+
+    if (countingUp ? minutes <= 59 : minutes >= 0) {
+      if (countingUp) minutes += interval;
+      else minutes -= interval;
+    } else {
+      minutes = countingUp ? 0 : 59;
+      if (countingUp) hours += interval;
+      else hours -= interval;
+    }
+  }
+
+  return { hours, minutes, seconds };
+}

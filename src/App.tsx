@@ -1,16 +1,13 @@
 import { Tab } from './components';
-import { Clock } from './modules/Clock';
-import { Stopwatch } from './modules/Stopwatch';
 import { Timer } from './modules/Timer';
+import { Stopwatch } from './modules/Stopwatch';
 
 function App() {
   return (
     <div style={{ marginTop: "2rem" }}>
-      <Tab.Group alignment='center' initialActiveTab='Timer'>
-        <Tab.Item tabKey='Clock' label='Clock'>
-          <Clock />
-        </Tab.Item>
+      <h1 style={{ textAlign: 'center', fontSize: '3rem', marginBottom: '2rem' }}>Timer Machine</h1>
 
+      <Tab.Group alignment='center' initialActiveTab='Timer'>
         <Tab.Item tabKey='Timer' label='Timer'>
           <Timer />
         </Tab.Item>
