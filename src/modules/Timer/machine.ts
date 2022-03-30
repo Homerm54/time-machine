@@ -7,8 +7,7 @@ import { assign, createMachine, MachineConfig, Interpreter } from "xstate";
  *  
  *  - Support for overtime state, keeps counting in negative after 0 is reached
  *  - Allows to restart timer with the very same input as before
- * 
- * TODO: Allow multiple clocks running at the same time
+ *  - Support for multiple timers at the same time
  */
 
 // [SECTION] INTERFACES
