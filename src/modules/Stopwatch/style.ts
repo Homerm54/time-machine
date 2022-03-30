@@ -25,5 +25,14 @@ const StateLabel = styled.div`
   margin: ${({ theme }) => theme.spacing(3)}px;
 `;
 
+const Laps = styled.div`
+  max-width: 200px;
+  margin: auto;
+  height: 90px;
+  overflow: auto;
+`;
 
-export { Contianer, TimeContainer, ButtonGroup, StateLabel };
+const Lap = styled.div`
+`;
+
+export { Contianer, TimeContainer, ButtonGroup, StateLabel, Laps, Lap };

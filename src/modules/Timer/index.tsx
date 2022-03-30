@@ -1,6 +1,7 @@
 import { useMachine, useActor } from "@xstate/react";
 import { useState } from "react";
 import { Button } from "../../components";
+import { parseTime } from "../../lib/parseTime";
 import { timerMachine, TimerService } from "./machine";
 import { ButtonGroup, Contianer, Input, StateLabel, TimeContainer } from "./style";
 
@@ -54,11 +55,6 @@ function InputTimer({ machine }: { machine: TimerService }): JSX.Element {
 function ActiveTimer({ machine }: { machine: TimerService }): JSX.Element {
   const [state, send] = useActor(machine);
   const overtime = state.matches('RUNNING.OVERTIME');
-
-  const parseTime = (time: number) => {
-    if (time >= 10) return time;
-    return `0${time}`;
-  }
 
   return(
     <Contianer>

@@ -4,14 +4,16 @@ type StopwatchMachineContext = {
   /** Object representing the time that will be displayed on the UI */
   time: {
     /** Hours elapsed since started */
-    hours: string;
+    hours: number;
     /** Minutes elapsed since started */
-    minutes: string;
+    minutes: number;
     /** Seconds elapsed since started */
-    seconds: string;
+    seconds: number;
   },
   // time that will be incremented for every "tick" event
   step: number,
+
+  laps: Array<StopwatchMachineContext['time']>,
 }
 
 type StopwatchMachineTransitions =
@@ -19,6 +21,7 @@ type StopwatchMachineTransitions =
   | { type: 'STOP' }
   | { type: 'RESET' }
   | { type: 'TICK' }
+  | { type: 'LAP' }
 
 interface StopwatchMachineSchema {
   states: {
@@ -34,8 +37,9 @@ interface StopwatchMachineSchema {
 const stopwatchMachineOptions: MachineConfig<StopwatchMachineContext, StopwatchMachineSchema, StopwatchMachineTransitions> = {
   id: 'Timer-Machine',
   context: {
-    time: { hours: '00', minutes: '00', seconds: '00' },
+    time: { hours: 0, minutes: 0, seconds: 0 },
     step: 1,
+    laps: [],
   },
   initial: 'IDLE',
   states: {
@@ -63,7 +67,8 @@ const stopwatchMachineOptions: MachineConfig<StopwatchMachineContext, StopwatchM
       on: {
         STOP: { target: 'PAUSED' },
         TICK: { actions: 'increment' },
-        RESET: { actions: 'reset' }
+        RESET: { actions: 'reset' },
+        LAP: { actions: 'markLap' }
       }
     },
   }
@@ -74,14 +79,11 @@ const stopwatchMachine = createMachine(stopwatchMachineOptions, {
     // Mapping of actions, the increment action will upadate the time prop in the context object
     increment: assign({
       time: (cxt) => {
-        let hours = parseInt(cxt.time.hours, 10);
-        let minutes = parseInt(cxt.time.minutes, 10);
-        let seconds = parseInt(cxt.time.seconds, 10);
+        let { hours, minutes, seconds } = cxt.time;
 
         if (seconds < 59) seconds += cxt.step;
         else {
           seconds = 0;
-
           if (minutes < 59) minutes += cxt.step;
           else {
             minutes = 0;
@@ -89,16 +91,15 @@ const stopwatchMachine = createMachine(stopwatchMachineOptions, {
           }
         }
 
-        return {
-          hours: hours >= 10 ? `${hours}` : `0${hours}`,
-          minutes: minutes >= 10 ? `${minutes}` : `0${minutes}`,
-          seconds: seconds >= 10 ? `${seconds}` : `0${seconds}`,
-        }
+        return { hours, minutes, seconds, };
       }
     }),
-
+    markLap: assign({
+      laps: (context) => context.laps.concat(context.time),
+    }),
     reset: assign({
-      time: () => ({ hours: '00', minutes: '00', seconds: '00' }),
+      time: () => ({ hours: 0, minutes: 0, seconds: 0 }),
+      laps: () => { return [] as StopwatchMachineContext['laps']; },
     })
   },
   services: {
