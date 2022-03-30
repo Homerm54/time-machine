@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/time-machine/static/js/main.a3535f4b.js",
+    "index.html": "/time-machine/index.html",
+    "main.a3535f4b.js.map": "/time-machine/static/js/main.a3535f4b.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.a3535f4b.js"
+  ]
+}
