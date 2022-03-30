@@ -2,7 +2,7 @@
   "name": "time-machine",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://homerm54.github.io",
+  "homepage": "https://homerm54.github.io/time-machine",
   "dependencies": {
     "@types/node": "^16.11.26",
     "@types/react": "^17.0.43",
