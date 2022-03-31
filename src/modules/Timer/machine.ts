@@ -65,8 +65,8 @@ const timerMachineOptions: MachineConfig<TimerMachineContext, TimerMachineSchema
   id: 'stopwatch',
   initial: 'IDLE',
   context: {
-    time: { hours: 0, minutes: 0, seconds: 0 },
     step: 1,
+    time: { hours: 0, minutes: 0, seconds: 0 },
     inputTime: { hours: 0, minutes: 0, seconds: 0 },
   },
   states: {
@@ -75,7 +75,7 @@ const timerMachineOptions: MachineConfig<TimerMachineContext, TimerMachineSchema
       on: {
         START: [
           { target: 'RUNNING', cond: 'validTimestamp', actions: 'assignTime' },
-          { target: 'INVALID' },
+          { target: 'INVALID' }, // Always jump to invalid state
         ]
       }
     },
@@ -93,11 +93,11 @@ const timerMachineOptions: MachineConfig<TimerMachineContext, TimerMachineSchema
               {
                 cond: 'checkOvertime', // Check if overtime on each tick
                 target: 'OVERTIME',
-                actions: 'increment', // Keep ticking even on transition
+                actions: 'increment', // Keep ticking on transition, to avoid a delay of a second
               },
               { actions: 'decrement' },
             ], 
-            PAUSE: { target: '#stopwatch.PAUSED' },
+            PAUSE: { target: '#stopwatch.PAUSED' }, // # used to reference absolute state path from machine top to bottom
             STOP: { target: '#stopwatch.IDLE' },
           }
         },
@@ -105,7 +105,7 @@ const timerMachineOptions: MachineConfig<TimerMachineContext, TimerMachineSchema
           on: {
             TICK: { actions: 'increment' },
             STOP: { target: '#stopwatch.IDLE' },
-            RESTART: { target: '#stopwatch.RUNNING', actions: 'restartTimer' },
+            RESTART: { target: 'NORMAL', actions: 'restartTimer' },
           }
         },
       },
@@ -118,6 +118,9 @@ const timerMachineOptions: MachineConfig<TimerMachineContext, TimerMachineSchema
       }
     },
     INVALID: {
+      // for now, just alert and jump back to idle, nevertheless
+      // it kept on a separate file in case a custom UI wants to be shown on invalid state
+      // and hence, stay in invalid until transitioned out
       entry: 'alertInvalidState',
       always: { target: 'IDLE' }
     },
@@ -171,7 +174,9 @@ const timerMachine = createMachine(timerMachineOptions, {
       if (!event.time) return false;
 
       const { hours, minutes, seconds } = event.time;
+      /** Check that the times on input are between the limits for them */
       const limits = hours >= 0 && minutes <= 60 && seconds <= 60;
+      /** Guard agains a 0 seconds timer */
       const atLeastOneSecondTimer = hours > 0 || minutes > 0 || seconds > 0;
       
       if (limits && atLeastOneSecondTimer) return true;
@@ -180,6 +185,7 @@ const timerMachine = createMachine(timerMachineOptions, {
 
     checkOvertime(context) {
       const { hours, minutes, seconds } = context.time;
+      // Clock has reaches the 0 point
       if (hours === 0 && minutes === 0 && seconds === 0) return true;
       return false;
     }
