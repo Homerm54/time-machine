@@ -1,6 +1,7 @@
 import { Tab } from './components';
 import { Timer } from './modules/Timer';
 import { Stopwatch } from './modules/Stopwatch';
+import { About } from './modules/About';
 
 function App() {
   return (
@@ -14,6 +15,10 @@ function App() {
 
         <Tab.Item tabKey='Stopwatch' label='Stopwatch'>
           <Stopwatch />
+        </Tab.Item>
+
+        <Tab.Item tabKey="About" label="About">
+          <About />
         </Tab.Item>
       </Tab.Group>
     </div>
